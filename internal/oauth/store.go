@@ -35,6 +35,7 @@ func (s KeyringStore) Load() (*Tokens, error) {
 }
 
 func (s KeyringStore) Save(t *Tokens) error {
+	// #nosec G117 -- persisting access/refresh tokens is the entire purpose of this store
 	data, err := json.Marshal(t)
 	if err != nil {
 		return err
