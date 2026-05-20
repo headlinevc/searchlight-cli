@@ -19,7 +19,7 @@
         { "type": "build", "section": "Build System", "hidden": true },
         { "type": "style", "section": "Code Style", "hidden": true }
       ],
-      "release-as": "0.1.0"
+      "release-as": "0.1.1"
     }
   }
 }
