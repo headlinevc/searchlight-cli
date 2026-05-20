@@ -82,7 +82,7 @@ func buildToolCmd(t mcp.ToolDefinition) *cobra.Command {
 		Args:          cobra.NoArgs,
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			payload, err := buildPayload(jsonPayload, flagValues)
 			if err != nil {
 				return err

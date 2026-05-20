@@ -26,7 +26,7 @@ func newAuthLoginCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "login",
 		Short: "Log in via OAuth (PKCE + browser loopback)",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			if globals.Cfg == nil {
 				return fmt.Errorf("config not initialized")
 			}
@@ -61,7 +61,7 @@ func newAuthLogoutCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "logout",
 		Short: "Delete stored credentials",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			store := oauth.KeyringStore{Backend: newKeyringBackend()}
 			if err := store.Clear(); err != nil {
 				return err
@@ -75,7 +75,7 @@ func newAuthRefreshCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "refresh",
 		Short: "Force a refresh-token exchange",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			globals.Tokens.ForceRefresh()
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
@@ -91,7 +91,7 @@ func newAuthWhoamiCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "whoami",
 		Short: "Identify the currently signed-in user (calls get_current_user)",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			res, err := globals.MCP.CallTool(ctx, "get_current_user", map[string]any{})

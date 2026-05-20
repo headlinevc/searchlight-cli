@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -77,7 +76,7 @@ func Execute() error {
 	if err := setupGlobals(); err != nil {
 		// Config errors shouldn't prevent --help from working. Surface them
 		// later when a command actually needs the config.
-		root.PersistentPreRunE = func(cmd *cobra.Command, args []string) error { return err }
+		root.PersistentPreRunE = func(_ *cobra.Command, _ []string) error { return err }
 	} else if globals.Schema.Path != "" {
 		registerDynamicTools(root)
 	}
@@ -112,8 +111,4 @@ func setupGlobals() error {
 		TTL:  24 * time.Hour,
 	}
 	return nil
-}
-
-func contextWithTimeout(d time.Duration) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), d)
 }

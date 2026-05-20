@@ -14,7 +14,7 @@ func newVersionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
 		Short: "Print CLI version, server version, and schema cache age",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			info := map[string]any{
 				"cli": map[string]string{
 					"version":    versionInfo.Version,

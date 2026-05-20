@@ -17,7 +17,7 @@ func newToolsCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "tools",
 		Short: "List, describe, and refresh available MCP tools",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			tools, err := loadTools(false)
 			if err != nil {
 				return err
@@ -36,7 +36,7 @@ func newToolsRefreshCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "refresh",
 		Short: "Force re-fetch of tools/list from the server",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			tools, err := loadTools(true)
 			if err != nil {
 				return err
@@ -52,7 +52,7 @@ func newToolsDescribeCmd() *cobra.Command {
 		Use:   "describe <tool-name>",
 		Short: "Print one tool's schema",
 		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			tools, err := loadTools(false)
 			if err != nil {
 				return err

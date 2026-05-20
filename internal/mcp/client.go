@@ -85,26 +85,36 @@ func (c *Client) Call(ctx context.Context, method string, params any) (json.RawM
 		return httpClient.Do(req)
 	}
 
-	resp, err := do()
+	// attempt issues the request once, fully drains the body, closes it, and
+	// returns the captured status + bytes. Splitting it out lets us retry on
+	// 401 without ever holding two open response bodies at once.
+	attempt := func() (int, []byte, error) {
+		resp, derr := do()
+		if derr != nil {
+			return 0, nil, derr
+		}
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(resp.Body)
+		return resp.StatusCode, body, nil
+	}
+
+	status, raw, err := attempt()
 	if err != nil {
 		return nil, sterr.Wrap("transport", "mcp request failed", sterr.ExitTransport, err)
 	}
-	if resp.StatusCode == http.StatusUnauthorized && c.Tokens != nil {
-		_ = resp.Body.Close()
+	if status == http.StatusUnauthorized && c.Tokens != nil {
 		c.Tokens.ForceRefresh()
-		resp, err = do()
+		status, raw, err = attempt()
 		if err != nil {
 			return nil, sterr.Wrap("transport", "mcp request failed after refresh", sterr.ExitTransport, err)
 		}
 	}
-	defer resp.Body.Close()
-	raw, _ := io.ReadAll(resp.Body)
 
-	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+	if status == http.StatusUnauthorized || status == http.StatusForbidden {
 		return nil, sterr.New("permission_denied", strings.TrimSpace(string(raw)), sterr.ExitPermissionDenied)
 	}
-	if resp.StatusCode >= 400 {
-		return nil, sterr.New("transport", fmt.Sprintf("%s: %s", resp.Status, strings.TrimSpace(string(raw))), sterr.ExitTransport)
+	if status >= 400 {
+		return nil, sterr.New("transport", fmt.Sprintf("%d: %s", status, strings.TrimSpace(string(raw))), sterr.ExitTransport)
 	}
 
 	var rr rpcResponse

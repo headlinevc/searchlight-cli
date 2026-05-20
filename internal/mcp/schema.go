@@ -17,13 +17,13 @@ type SchemaCache struct {
 	TTL  time.Duration
 }
 
-type cachedSchema struct {
+type CachedSchema struct {
 	ObtainedAt    time.Time        `json:"obtained_at"`
 	ServerVersion string           `json:"server_version"`
 	Tools         []ToolDefinition `json:"tools"`
 }
 
-func (s SchemaCache) Load() (*cachedSchema, error) {
+func (s SchemaCache) Load() (*CachedSchema, error) {
 	data, err := os.ReadFile(s.Path)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
@@ -31,14 +31,14 @@ func (s SchemaCache) Load() (*cachedSchema, error) {
 	if err != nil {
 		return nil, err
 	}
-	var out cachedSchema
+	var out CachedSchema
 	if err := json.Unmarshal(data, &out); err != nil {
 		return nil, fmt.Errorf("parse tools cache: %w", err)
 	}
 	return &out, nil
 }
 
-func (s SchemaCache) Save(cs *cachedSchema) error {
+func (s SchemaCache) Save(cs *CachedSchema) error {
 	data, err := json.MarshalIndent(cs, "", "  ")
 	if err != nil {
 		return err
@@ -46,7 +46,7 @@ func (s SchemaCache) Save(cs *cachedSchema) error {
 	return os.WriteFile(s.Path, data, 0o600)
 }
 
-func (s SchemaCache) IsFresh(cs *cachedSchema) bool {
+func (s SchemaCache) IsFresh(cs *CachedSchema) bool {
 	if cs == nil || cs.ObtainedAt.IsZero() {
 		return false
 	}
@@ -74,7 +74,7 @@ func (s SchemaCache) LoadOrFetch(ctx context.Context, c *Client, force bool) ([]
 	if err != nil {
 		return nil, err
 	}
-	cs := &cachedSchema{
+	cs := &CachedSchema{
 		ObtainedAt:    time.Now(),
 		ServerVersion: init.ServerInfo.Version,
 		Tools:         list.Tools,

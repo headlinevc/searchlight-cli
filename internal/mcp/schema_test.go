@@ -10,13 +10,13 @@ func TestSchemaCache_IsFresh(t *testing.T) {
 
 	cases := []struct {
 		name   string
-		cached *cachedSchema
+		cached *CachedSchema
 		want   bool
 	}{
 		{"nil cache", nil, false},
-		{"zero time", &cachedSchema{}, false},
-		{"recent", &cachedSchema{ObtainedAt: time.Now().Add(-time.Hour)}, true},
-		{"stale (>24h)", &cachedSchema{ObtainedAt: time.Now().Add(-25 * time.Hour)}, false},
+		{"zero time", &CachedSchema{}, false},
+		{"recent", &CachedSchema{ObtainedAt: time.Now().Add(-time.Hour)}, true},
+		{"stale (>24h)", &CachedSchema{ObtainedAt: time.Now().Add(-25 * time.Hour)}, false},
 	}
 	for _, tc := range cases {
 		if got := cache.IsFresh(tc.cached); got != tc.want {
@@ -27,7 +27,7 @@ func TestSchemaCache_IsFresh(t *testing.T) {
 
 func TestSchemaCache_IsFresh_ZeroTTL(t *testing.T) {
 	cache := SchemaCache{TTL: 0}
-	cs := &cachedSchema{ObtainedAt: time.Now()}
+	cs := &CachedSchema{ObtainedAt: time.Now()}
 	if cache.IsFresh(cs) {
 		t.Error("IsFresh with TTL=0 should always return false")
 	}
