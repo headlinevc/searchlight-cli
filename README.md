@@ -117,7 +117,7 @@ SEARCHLIGHT_URL=https://staging.searchlight.io ./searchlight auth login
 
 The two `client_id` values are minted by a one-time `OauthApplication.create!`
 in the eva-web Rails console (production and staging) — see `CLAUDE.md` for
-the exact snippet and ask Diogo for the values.
+the exact snippet and ask an admin for the values.
 
 ## Contributing & Releases
 

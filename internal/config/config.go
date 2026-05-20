@@ -16,8 +16,8 @@ const (
 )
 
 // ClientIDs are baked at build time via -ldflags="-X ...prodClientID=..." after
-// Diogo creates the OauthApplication rows on staging and prod Rails consoles.
-// See implementation plan, milestone #2.
+// an admin creates the OauthApplication rows on staging and prod Rails consoles.
+// See CLAUDE.md, "OAuth client setup (one-time, manual)".
 var (
 	prodClientID    = ""
 	stagingClientID = ""
