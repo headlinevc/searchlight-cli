@@ -116,11 +116,44 @@ SEARCHLIGHT_URL=https://staging.searchlight.io ./searchlight auth login
 ```
 
 The two `client_id` values are minted by a one-time `OauthApplication.create!`
-in the eva-web Rails console (production and staging) — see the
-implementation plan and ask Diogo for the values.
+in the eva-web Rails console (production and staging) — see `CLAUDE.md` for
+the exact snippet and ask Diogo for the values.
+
+## Contributing & Releases
+
+Commits on `main` must follow the [Conventional Commits](https://www.conventionalcommits.org)
+spec. The release pipeline reads commit types to decide what to ship:
+
+| Type | Effect |
+|---|---|
+| `feat:` | minor version bump, listed under **Features** in the changelog |
+| `fix:` | patch bump, **Bug Fixes** |
+| `perf:` `refactor:` `deps:` | patch bump, dedicated sections |
+| `docs:` | visible in changelog, no bump |
+| `test:` `chore:` `ci:` `build:` `style:` | no bump, hidden from changelog |
+| `feat!:` or `BREAKING CHANGE:` in body | major bump |
+
+Put EVA ticket numbers in the subject as a suffix, not a prefix:
+
+```
+feat: add dynamic command registration (EVA-9938)
+fix: handle 401 retry without leaking response bodies (EVA-9938)
+```
+
+Releases are fully automated via [release-please](https://github.com/googleapis/release-please):
+
+1. Every push to `main` updates a long-running "release PR" with the proposed
+   version bump and generated `CHANGELOG.md`.
+2. Merging that PR creates the `vX.Y.Z` tag and a GitHub Release.
+3. The same workflow then runs GoReleaser, publishing binaries to the
+   Release page and pushing the Homebrew Formula to `headlinevc/homebrew-tap`.
+
+Never hand-edit `CHANGELOG.md` or `.release-please-manifest.json` — the bot
+owns both.
 
 ## Related
 
 - Eva-web MCP tool source: `lib/mcp/tools/*.rb` (124 tools as of server v4.2.0)
 - Eva-web MCP transport: `app/controllers/api/mcp_controller.rb`
 - Linear ticket: EVA-9938
+- Full project contract: `CLAUDE.md`
