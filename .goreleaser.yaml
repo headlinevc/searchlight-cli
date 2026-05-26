@@ -28,7 +28,6 @@ builds:
       - -X main.commit={{.ShortCommit}}
       - -X main.buildDate={{.Date}}
       - -X github.com/headlinevc/searchlight-cli/internal/config.prodClientID={{.Env.SEARCHLIGHT_PROD_CLIENT_ID}}
-      - -X github.com/headlinevc/searchlight-cli/internal/config.stagingClientID={{.Env.SEARCHLIGHT_STAGING_CLIENT_ID}}
 
 archives:
   - id: default

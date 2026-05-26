@@ -2,9 +2,7 @@
 
 BINARY := searchlight
 PROD_CID ?= dev-prod-client-id
-STAGING_CID ?= dev-staging-client-id
-LDFLAGS := -X github.com/headlinevc/searchlight-cli/internal/config.prodClientID=$(PROD_CID) \
-           -X github.com/headlinevc/searchlight-cli/internal/config.stagingClientID=$(STAGING_CID)
+LDFLAGS := -X github.com/headlinevc/searchlight-cli/internal/config.prodClientID=$(PROD_CID)
 
 build:
 	CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o $(BINARY) .

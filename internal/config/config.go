@@ -15,13 +15,10 @@ const (
 	envClientID  = "SEARCHLIGHT_CLIENT_ID"
 )
 
-// ClientIDs are baked at build time via -ldflags="-X ...prodClientID=..." after
-// an admin registers the staging and prod OAuth applications on the server.
+// ClientID is baked at build time via -ldflags="-X ...prodClientID=..." after
+// an admin registers the OAuth application on the server.
 // See CLAUDE.md, "OAuth client setup (one-time, manual)".
-var (
-	prodClientID    = ""
-	stagingClientID = ""
-)
+var prodClientID = ""
 
 type Config struct {
 	ServerURL string
@@ -35,12 +32,7 @@ func Load() (*Config, error) {
 
 	clientID := os.Getenv(envClientID)
 	if clientID == "" {
-		switch {
-		case strings.Contains(server, "staging") || strings.Contains(server, "localhost"):
-			clientID = stagingClientID
-		default:
-			clientID = prodClientID
-		}
+		clientID = prodClientID
 	}
 	if clientID == "" {
 		return nil, fmt.Errorf(
