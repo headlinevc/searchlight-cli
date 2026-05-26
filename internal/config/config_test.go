@@ -85,7 +85,7 @@ func TestLoad_SelectsStagingClientID(t *testing.T) {
 
 func TestLoad_SelectsProdClientID(t *testing.T) {
 	withDirs(t)
-	t.Setenv("SEARCHLIGHT_URL", "https://searchlight.io")
+	t.Setenv("SEARCHLIGHT_URL", "https://searchlight.headline.com")
 	t.Setenv("SEARCHLIGHT_CLIENT_ID", "")
 	prev1, prev2 := prodClientID, stagingClientID
 	prodClientID = "PROD"

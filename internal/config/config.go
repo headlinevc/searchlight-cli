@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	DefaultServerURL = "https://searchlight.io"
+	DefaultServerURL = "https://searchlight.headline.com"
 	UserAgent        = "searchlight-cli"
 
 	envServerURL = "SEARCHLIGHT_URL"

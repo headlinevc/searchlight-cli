@@ -86,7 +86,7 @@ invalidates the cache automatically.
 
 | Env var | Default | Purpose |
 |---|---|---|
-| `SEARCHLIGHT_URL` | `https://searchlight.io` | Server base URL — point at staging by setting this |
+| `SEARCHLIGHT_URL` | `https://searchlight.headline.com` | Server base URL |
 | `SEARCHLIGHT_CLIENT_ID` | (baked at build) | Override OAuth client_id |
 
 ## Mutating tools
@@ -111,8 +111,8 @@ CGO_ENABLED=0 go build \
   -ldflags="-X github.com/headlinevc/searchlight-cli/internal/config.prodClientID=$PROD_CID -X github.com/headlinevc/searchlight-cli/internal/config.stagingClientID=$STAGING_CID" \
   -o searchlight .
 
-# Point at staging
-SEARCHLIGHT_URL=https://staging.searchlight.io ./searchlight auth login
+# Override the server URL if needed (defaults to production)
+SEARCHLIGHT_URL=https://searchlight.headline.com ./searchlight auth login
 ```
 
 The two `client_id` values are minted once by a Searchlight admin when
