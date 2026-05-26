@@ -16,7 +16,7 @@ const (
 )
 
 // ClientIDs are baked at build time via -ldflags="-X ...prodClientID=..." after
-// an admin creates the OauthApplication rows on staging and prod Rails consoles.
+// an admin registers the staging and prod OAuth applications on the server.
 // See CLAUDE.md, "OAuth client setup (one-time, manual)".
 var (
 	prodClientID    = ""

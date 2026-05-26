@@ -1,10 +1,10 @@
 # Searchlight CLI — Project Contract
 
-A thin Go client over the Searchlight MCP server (eva-web). The tool surface is
-fully derived at runtime from the MCP server's `tools/list`, so adding new
-tools server-side requires zero changes here. Audience is internal Headline
-users + portfolio CEOs (today) and sophisticated external investors (after the
-`is_internal?` gate is relaxed server-side).
+A thin Go client over the Searchlight MCP server. The tool surface is fully
+derived at runtime from the MCP server's `tools/list`, so adding new tools
+server-side requires zero changes here. Audience is internal Headline users +
+portfolio CEOs (today) and sophisticated external investors (after the
+internal-user gate is relaxed server-side).
 
 ## What this CLI is for
 
@@ -22,7 +22,7 @@ Linear ticket: [EVA-9938](https://linear.app/headline/issue/EVA-9938/create-a-se
 
 ```
 ┌─────────────────────────┐         OAuth PKCE          ┌──────────────────────┐
-│  searchlight CLI (Go)   │  ◄─────────────────────────► │  eva-web /oauth/*    │
+│  searchlight CLI (Go)   │  ◄─────────────────────────► │  searchlight /oauth/*│
 │  ─────────────────────  │                              │  /.well-known/*      │
 │  cobra root             │         JSON-RPC POST        │                      │
 │   ├─ auth login/logout  │  ──────────────────────────► │  /mcp                │
@@ -92,11 +92,10 @@ Every invocation:
 
 ### Auth flow
 
-PKCE + browser loopback against eva-web's custom OAuth implementation. All the
-relevant server endpoints already exist (`POST /oauth/token`,
-`/.well-known/oauth-authorization-server`, `OauthApplication` with wildcard
-redirect URI support, PKCE S256 enforced in
-`app/services/mcp/oauth/authorization_service.rb`).
+PKCE + browser loopback against the Searchlight server's custom OAuth
+implementation. The server exposes the standard endpoints (`POST /oauth/token`,
+`/.well-known/oauth-authorization-server`) and supports OAuth applications
+with wildcard loopback redirect URIs and PKCE S256 challenges.
 
 The CLI:
 
@@ -157,7 +156,7 @@ CGO_ENABLED=0 go build \
   for internal/test code where exit code doesn't matter.
 - **Comments**: explain WHY in domain terms, not WHAT. Never reference Linear
   ticket numbers in source (they go in commit messages, PR titles, branch names
-  only — same rule as eva-web).
+  only).
 - **No `panic`** in CLI paths. Return errors. Tests can `t.Fatalf` freely.
 - **HTTP clients**: always set a timeout. The MCP client uses 60s, OAuth
   endpoints use 5min for the browser-loopback window.
@@ -168,7 +167,7 @@ CGO_ENABLED=0 go build \
 
 ## Testing Philosophy
 
-Inherited from the eva-web project — applies here verbatim:
+Inherited from our other internal projects — applies here verbatim:
 
 - **Never re-implement logic in tests.** Hardcode expected values from
   manually-verified examples. If the production code computes
@@ -189,23 +188,17 @@ Inherited from the eva-web project — applies here verbatim:
 ## OAuth client setup (one-time, manual)
 
 The CLI is a public OAuth client (no client_secret; PKCE proves possession).
-Two `OauthApplication` rows must exist in eva-web — one in production, one in
-staging. Run this in the **eva-web** Rails console for each environment:
+A Searchlight admin must register two OAuth applications on the server — one
+in production, one in staging — each with:
 
-```ruby
-OauthApplication.create!(
-  name: "Searchlight CLI",
-  client_id: SecureRandom.uuid,                  # record this → GitHub secret
-  client_secret: nil,
-  redirect_uris: ["http://localhost:*", "http://127.0.0.1:*"],
-  grant_types: %w[authorization_code refresh_token],
-  response_types: %w[code],
-)
-```
+- name: `Searchlight CLI`
+- client_id: a freshly minted UUID (record it — this becomes a GitHub secret)
+- client_secret: empty (PKCE-only)
+- redirect_uris: `http://localhost:*`, `http://127.0.0.1:*` (loopback only)
+- grant_types: `authorization_code`, `refresh_token`
+- response_types: `code`
 
-The wildcard redirect URI support is already implemented in
-`app/models/oauth_application.rb:13-21`. Record both `client_id`s and stash
-them as GitHub secrets in this repo:
+Record both `client_id`s and stash them as GitHub secrets in this repo:
 
 - `SEARCHLIGHT_PROD_CLIENT_ID`
 - `SEARCHLIGHT_STAGING_CLIENT_ID`
@@ -281,8 +274,9 @@ Before the first release can succeed:
 1. Create `headlinevc/homebrew-tap` repo (public, can be empty).
 2. Create a PAT with `contents:write` on `homebrew-tap`, store as
    `HOMEBREW_TAP_TOKEN` secret on this repo.
-3. Create the `OauthApplication` rows (see above) and stash
-   `SEARCHLIGHT_PROD_CLIENT_ID` + `SEARCHLIGHT_STAGING_CLIENT_ID` secrets.
+3. Register the production + staging OAuth applications on the server (see
+   above) and stash `SEARCHLIGHT_PROD_CLIENT_ID` + `SEARCHLIGHT_STAGING_CLIENT_ID`
+   secrets.
 
 ## Safety Rails
 
@@ -322,11 +316,11 @@ Before the first release can succeed:
 
 ## Known Constraints / Open follow-ups
 
-1. **`is_internal?` gate.** Every MCP request hits
-   `lib/mcp/auth/authenticator.rb` which requires `user.is_internal? == true`.
-   The CLI's intended investor audience is currently blocked by this. Needs a
-   server-side change to scope access per `OauthApplication` type before
-   external rollout. Tracked as a follow-up on EVA-9938 (separate ticket).
+1. **Internal-user gate.** The Searchlight server currently requires the
+   authenticated user to be a Headline internal user on every MCP request.
+   The CLI's intended external-investor audience is blocked by this until
+   the server scopes access by OAuth application type. Tracked as a
+   follow-up Linear issue.
 2. **`go install` UX.** Lacks the ldflags-injected client_id; the user falls
    back to the `SEARCHLIGHT_CLIENT_ID` env var. README + docs/agents.md
    explain this. Acceptable for dev workflows, not for investor onboarding.
@@ -381,8 +375,8 @@ Before declaring work complete, confirm:
 
 When context compaction triggers, preserve in priority order:
 
-1. Architecture decisions (NEVER summarize away — `is_internal?` constraint,
-   dynamic registration design, conventional-commit requirement)
+1. Architecture decisions (NEVER summarize away — internal-user gate
+   constraint, dynamic registration design, conventional-commit requirement)
 2. Modified files and their key changes
 3. Current test pass/fail + coverage status
 4. Open follow-ups (1–5 in "Known Constraints" above)

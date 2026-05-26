@@ -103,7 +103,7 @@ func newIntegrationFixture(t *testing.T) *integrationFixture {
 	handler := &integrationHandler{
 		respond: map[string]func(map[string]any) (any, bool){
 			"get_current_user": func(_ map[string]any) (any, bool) {
-				return map[string]any{"email": "diogo@example.com", "is_internal": true}, false
+				return map[string]any{"email": "user@example.com", "is_internal": true}, false
 			},
 		},
 	}
@@ -212,8 +212,8 @@ func TestAuthWhoami_Integration(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &got); err != nil {
 		t.Fatalf("output is not JSON: %q", out)
 	}
-	if got["email"] != "diogo@example.com" {
-		t.Errorf("email = %v, want diogo@example.com", got["email"])
+	if got["email"] != "user@example.com" {
+		t.Errorf("email = %v, want user@example.com", got["email"])
 	}
 }
 

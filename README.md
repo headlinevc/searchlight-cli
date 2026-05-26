@@ -5,7 +5,7 @@ auth, same payloads — but driven from the shell, optimized for agents and powe
 users.
 
 > v0 audience: internal Headline users + portfolio CEOs already in the
-> `is_internal?` allowlist on the eva-web server. External investors are
+> internal-user allowlist on the Searchlight server. External investors are
 > blocked until that gate is relaxed; tracked as a follow-up Linear issue.
 
 ## Install
@@ -42,7 +42,7 @@ searchlight lookup_company --domain openai.com --pretty
 
 ## Authentication
 
-The CLI uses OAuth 2.0 authorization_code + PKCE (S256) against the eva-web
+The CLI uses OAuth 2.0 authorization_code + PKCE (S256) against the Searchlight
 MCP server, with a loopback redirect on an ephemeral port. Tokens are stored
 in your OS keyring (macOS Keychain / Windows Credential Manager / libsecret),
 falling back to a 0600 file at `$XDG_CONFIG_HOME/searchlight/credentials.json`
@@ -115,9 +115,10 @@ CGO_ENABLED=0 go build \
 SEARCHLIGHT_URL=https://staging.searchlight.io ./searchlight auth login
 ```
 
-The two `client_id` values are minted by a one-time `OauthApplication.create!`
-in the eva-web Rails console (production and staging) — see `CLAUDE.md` for
-the exact snippet and ask an admin for the values.
+The two `client_id` values are minted once by a Searchlight admin when
+registering the production and staging OAuth applications on the server —
+see `CLAUDE.md` for the required application config, and ask an admin for
+the values.
 
 ## Contributing & Releases
 
@@ -153,7 +154,5 @@ owns both.
 
 ## Related
 
-- Eva-web MCP tool source: `lib/mcp/tools/*.rb` (124 tools as of server v4.2.0)
-- Eva-web MCP transport: `app/controllers/api/mcp_controller.rb`
-- Linear ticket: EVA-9938
 - Full project contract: `CLAUDE.md`
+- Agent invariants: `docs/agents.md`
