@@ -18,8 +18,7 @@
         { "type": "ci", "section": "Continuous Integration", "hidden": true },
         { "type": "build", "section": "Build System", "hidden": true },
         { "type": "style", "section": "Code Style", "hidden": true }
-      ],
-      "release-as": "0.1.1"
+      ]
     }
   }
 }
