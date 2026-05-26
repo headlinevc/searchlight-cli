@@ -143,8 +143,13 @@ func (l Login) Run(ctx context.Context, scope string) (*LoginResult, error) {
 		_ = server.Shutdown(shutdownCtx)
 	}()
 
+	// Always print the URL — some environments (WSL, headless containers, SSH
+	// sessions) make browser.OpenURL silently succeed without actually opening
+	// anything, so relying on its error return to decide whether to print the
+	// URL leaves the user stuck staring at a blank prompt.
+	fmt.Fprintf(os.Stderr, "Open this URL in your browser to sign in:\n\n  %s\n\n", authURL)
 	if err := browser.OpenURL(authURL); err != nil {
-		fmt.Fprintf(os.Stderr, "Could not open browser automatically. Open this URL:\n\n  %s\n\n", authURL)
+		fmt.Fprintf(os.Stderr, "(browser did not auto-open: %v — paste the URL above manually)\n\n", err)
 	}
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, defaultTimeout)

@@ -54,43 +54,22 @@ func TestLoad_NoClientID_Errors(t *testing.T) {
 	withDirs(t)
 	t.Setenv("SEARCHLIGHT_URL", "https://example.com")
 	t.Setenv("SEARCHLIGHT_CLIENT_ID", "")
-	// Reset baked-in defaults
-	prev1, prev2 := prodClientID, stagingClientID
+	prev := prodClientID
 	prodClientID = ""
-	stagingClientID = ""
-	t.Cleanup(func() { prodClientID = prev1; stagingClientID = prev2 })
+	t.Cleanup(func() { prodClientID = prev })
 
 	if _, err := Load(); err == nil {
 		t.Fatal("expected error when no client_id is configured")
 	}
 }
 
-func TestLoad_SelectsStagingClientID(t *testing.T) {
+func TestLoad_UsesBakedInProdClientID(t *testing.T) {
 	withDirs(t)
-	t.Setenv("SEARCHLIGHT_URL", "https://staging.example.com")
+	t.Setenv("SEARCHLIGHT_URL", "https://searchlight.headline.com")
 	t.Setenv("SEARCHLIGHT_CLIENT_ID", "")
-	prev1, prev2 := prodClientID, stagingClientID
+	prev := prodClientID
 	prodClientID = "PROD"
-	stagingClientID = "STAGING"
-	t.Cleanup(func() { prodClientID = prev1; stagingClientID = prev2 })
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load: %v", err)
-	}
-	if cfg.ClientID != "STAGING" {
-		t.Errorf("ClientID = %q, want STAGING for staging URL", cfg.ClientID)
-	}
-}
-
-func TestLoad_SelectsProdClientID(t *testing.T) {
-	withDirs(t)
-	t.Setenv("SEARCHLIGHT_URL", "https://searchlight.io")
-	t.Setenv("SEARCHLIGHT_CLIENT_ID", "")
-	prev1, prev2 := prodClientID, stagingClientID
-	prodClientID = "PROD"
-	stagingClientID = "STAGING"
-	t.Cleanup(func() { prodClientID = prev1; stagingClientID = prev2 })
+	t.Cleanup(func() { prodClientID = prev })
 
 	cfg, err := Load()
 	if err != nil {

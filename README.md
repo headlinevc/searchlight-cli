@@ -86,7 +86,7 @@ invalidates the cache automatically.
 
 | Env var | Default | Purpose |
 |---|---|---|
-| `SEARCHLIGHT_URL` | `https://searchlight.io` | Server base URL — point at staging by setting this |
+| `SEARCHLIGHT_URL` | `https://searchlight.headline.com` | Server base URL |
 | `SEARCHLIGHT_CLIENT_ID` | (baked at build) | Override OAuth client_id |
 
 ## Mutating tools
@@ -106,19 +106,18 @@ searchlight send_email --dry-run --json '{"to":"a@b.com","subject":"hi","body":"
 # Tests
 go test ./...
 
-# Local build (placeholder client IDs)
+# Local build (placeholder client ID)
 CGO_ENABLED=0 go build \
-  -ldflags="-X github.com/headlinevc/searchlight-cli/internal/config.prodClientID=$PROD_CID -X github.com/headlinevc/searchlight-cli/internal/config.stagingClientID=$STAGING_CID" \
+  -ldflags="-X github.com/headlinevc/searchlight-cli/internal/config.prodClientID=$PROD_CID" \
   -o searchlight .
 
-# Point at staging
-SEARCHLIGHT_URL=https://staging.searchlight.io ./searchlight auth login
+# Override the server URL if needed (defaults to production)
+SEARCHLIGHT_URL=https://searchlight.headline.com ./searchlight auth login
 ```
 
-The two `client_id` values are minted once by a Searchlight admin when
-registering the production and staging OAuth applications on the server —
-see `CLAUDE.md` for the required application config, and ask an admin for
-the values.
+The `client_id` is minted once by a Searchlight admin when registering the
+production OAuth application on the server — see `CLAUDE.md` for the
+required application config, and ask an admin for the value.
 
 ## Contributing & Releases
 

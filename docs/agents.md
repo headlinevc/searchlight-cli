@@ -47,7 +47,7 @@ Mutators are tools whose names start with `create_`, `update_`, `delete_`, `send
 
 ## Server pointing
 
-- `SEARCHLIGHT_URL` env var selects the target server (default `https://searchlight.io`). Staging: `https://staging.searchlight.io`.
+- `SEARCHLIGHT_URL` env var selects the target server (default `https://searchlight.headline.com`).
 - The OAuth `client_id` is selected automatically based on the server URL.
 
 ## Things you should NOT do

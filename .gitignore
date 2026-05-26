@@ -1,4 +1,5 @@
 /searchlight
+/searchlight.exe
 /dist/
 *.test
 *.out

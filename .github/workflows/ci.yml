@@ -58,5 +58,5 @@ jobs:
           go-version: "1.22"
       - name: Smoke build
         run: |
-          CGO_ENABLED=0 go build -ldflags="-X github.com/headlinevc/searchlight-cli/internal/config.prodClientID=ci-placeholder -X github.com/headlinevc/searchlight-cli/internal/config.stagingClientID=ci-placeholder" -o /tmp/searchlight .
+          CGO_ENABLED=0 go build -ldflags="-X github.com/headlinevc/searchlight-cli/internal/config.prodClientID=ci-placeholder" -o /tmp/searchlight .
           /tmp/searchlight --help

@@ -139,8 +139,7 @@ go test -run TestClient_Call_401WithRefresh_Succeeds ./internal/mcp/...
 
 # Reproduce the CI smoke build
 CGO_ENABLED=0 go build \
-  -ldflags="-X github.com/headlinevc/searchlight-cli/internal/config.prodClientID=ci-placeholder \
-            -X github.com/headlinevc/searchlight-cli/internal/config.stagingClientID=ci-placeholder" \
+  -ldflags="-X github.com/headlinevc/searchlight-cli/internal/config.prodClientID=ci-placeholder" \
   -o /tmp/searchlight . && /tmp/searchlight --help
 ```
 
@@ -188,8 +187,8 @@ Inherited from our other internal projects — applies here verbatim:
 ## OAuth client setup (one-time, manual)
 
 The CLI is a public OAuth client (no client_secret; PKCE proves possession).
-A Searchlight admin must register two OAuth applications on the server — one
-in production, one in staging — each with:
+A Searchlight admin must register one OAuth application on the production
+server with:
 
 - name: `Searchlight CLI`
 - client_id: a freshly minted UUID (record it — this becomes a GitHub secret)
@@ -198,12 +197,11 @@ in production, one in staging — each with:
 - grant_types: `authorization_code`, `refresh_token`
 - response_types: `code`
 
-Record both `client_id`s and stash them as GitHub secrets in this repo:
+Stash the `client_id` as a GitHub secret in this repo:
 
 - `SEARCHLIGHT_PROD_CLIENT_ID`
-- `SEARCHLIGHT_STAGING_CLIENT_ID`
 
-The GoReleaser pipeline bakes them into the released binaries via
+The GoReleaser pipeline bakes it into the released binaries via
 `-ldflags="-X github.com/headlinevc/searchlight-cli/internal/config.prodClientID=..."`.
 
 ## Release Process
@@ -261,7 +259,7 @@ After a release, end users install via:
 3. **`go install`** — developers only:
    ```bash
    go install github.com/headlinevc/searchlight-cli@latest
-   export SEARCHLIGHT_CLIENT_ID=<staging-client-id>
+   export SEARCHLIGHT_CLIENT_ID=<prod-client-id>
    ```
    `go install` does NOT honor GoReleaser `-ldflags`, so the baked-in
    `client_id` is empty — the user must set `SEARCHLIGHT_CLIENT_ID` manually.
@@ -274,9 +272,8 @@ Before the first release can succeed:
 1. Create `headlinevc/homebrew-tap` repo (public, can be empty).
 2. Create a PAT with `contents:write` on `homebrew-tap`, store as
    `HOMEBREW_TAP_TOKEN` secret on this repo.
-3. Register the production + staging OAuth applications on the server (see
-   above) and stash `SEARCHLIGHT_PROD_CLIENT_ID` + `SEARCHLIGHT_STAGING_CLIENT_ID`
-   secrets.
+3. Register the production OAuth application on the server (see above) and
+   stash `SEARCHLIGHT_PROD_CLIENT_ID` as a GitHub secret.
 
 ## Safety Rails
 
@@ -347,10 +344,10 @@ Before the first release can succeed:
 | `internal/oauth/store.go` | `KeyringStore`: persists the entire Tokens blob atomically |
 | `internal/mcp/client.go` | JSON-RPC client; retry-once on 401 via `Tokens.ForceRefresh` |
 | `internal/mcp/schema.go` | `SchemaCache.LoadOrFetch` — TTL + force-refresh; cache key includes server version |
-| `internal/config/config.go` | `Load` — env-var precedence, build-time `prodClientID`/`stagingClientID` |
+| `internal/config/config.go` | `Load` — env-var precedence, build-time `prodClientID` |
 | `internal/errors/codes.go` | `CodedError`, `ExitCodeFor`, exit code constants |
 | `internal/output/json.go` | stdout JSON / stderr humans; `--pretty` indentation; `--quiet` mute |
-| `.goreleaser.yaml` | Cross-compile matrix, ldflags-injected client IDs, Homebrew tap publish |
+| `.goreleaser.yaml` | Cross-compile matrix, ldflags-injected client ID, Homebrew tap publish |
 | `release-please-config.json` | Release type, changelog sections, initial `release-as: "0.1.0"` |
 | `.release-please-manifest.json` | Current version (`{".": "0.0.0"}` until first release) |
 | `docs/agents.md` | SKILL.md-style invariants surfaced to AI agents driving the CLI |
@@ -364,10 +361,10 @@ Before declaring work complete, confirm:
 - [ ] `go test -coverprofile=... -coverpkg=./... ./...` aggregate ≥ 70%
 - [ ] `golangci-lint run ./...` exits 0
 - [ ] `gosec ./...` exits 0 (or new findings are annotated with rationale)
-- [ ] `make build` succeeds with placeholder client IDs
+- [ ] `make build` succeeds with a placeholder client ID
 - [ ] `./searchlight --help` lists `auth`, `tools`, `version` + global flags
-- [ ] If touching OAuth or MCP transport: manual `auth login` against staging,
-      then `auth whoami` round-trip
+- [ ] If touching OAuth or MCP transport: manual `auth login` against
+      production with a real `client_id`, then `auth whoami` round-trip
 - [ ] If touching dynamic registration: `tools refresh` populates cache,
       `<tool-name> --help` renders parameter table
 
