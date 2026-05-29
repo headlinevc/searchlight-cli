@@ -54,12 +54,34 @@ func TestLoad_NoClientID_Errors(t *testing.T) {
 	withDirs(t)
 	t.Setenv("SEARCHLIGHT_URL", "https://example.com")
 	t.Setenv("SEARCHLIGHT_CLIENT_ID", "")
+	t.Setenv("SEARCHLIGHT_TOKEN", "")
 	prev := prodClientID
 	prodClientID = ""
 	t.Cleanup(func() { prodClientID = prev })
 
 	if _, err := Load(); err == nil {
 		t.Fatal("expected error when no client_id is configured")
+	}
+}
+
+func TestLoad_TokenBypassesClientIDRequirement(t *testing.T) {
+	withDirs(t)
+	t.Setenv("SEARCHLIGHT_URL", "https://example.com")
+	t.Setenv("SEARCHLIGHT_CLIENT_ID", "")
+	t.Setenv("SEARCHLIGHT_TOKEN", "mcp-token-abc")
+	prev := prodClientID
+	prodClientID = ""
+	t.Cleanup(func() { prodClientID = prev })
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load with a token but no client_id should succeed: %v", err)
+	}
+	if cfg.Token != "mcp-token-abc" {
+		t.Errorf("Token = %q, want mcp-token-abc", cfg.Token)
+	}
+	if cfg.ClientID != "" {
+		t.Errorf("ClientID = %q, want empty (no OAuth needed when a token is supplied)", cfg.ClientID)
 	}
 }
 

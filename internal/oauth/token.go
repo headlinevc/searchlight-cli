@@ -160,3 +160,18 @@ func (m *Manager) ForceRefresh() {
 	defer m.mu.Unlock()
 	m.cached = nil
 }
+
+// StaticTokenSource serves a fixed bearer token (a long-lived MCP token supplied
+// via env for CI / non-interactive use), bypassing the OAuth flow and keyring.
+// ForceRefresh is a no-op: a static token can't be refreshed, so a 401 surfaces
+// directly as permission_denied instead of retrying.
+type StaticTokenSource string
+
+func (s StaticTokenSource) AccessToken(context.Context) (string, error) {
+	if s == "" {
+		return "", fmt.Errorf("empty token")
+	}
+	return string(s), nil
+}
+
+func (StaticTokenSource) ForceRefresh() {}

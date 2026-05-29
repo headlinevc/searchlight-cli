@@ -100,11 +100,18 @@ func setupGlobals() error {
 	tokenEndpoint := strings.TrimRight(cfg.ServerURL, "/") + "/oauth/token"
 	globals.Tokens = oauth.NewManager(store, tokenEndpoint, cfg.ClientID, globals.HTTPC)
 
+	// A pre-minted MCP token (CI/non-interactive) is sent as the Bearer directly,
+	// bypassing the OAuth manager and keyring entirely.
+	var tokenSrc mcp.TokenSource = globals.Tokens
+	if cfg.Token != "" {
+		tokenSrc = oauth.StaticTokenSource(cfg.Token)
+	}
+
 	globals.MCP = &mcp.Client{
 		ServerURL:  cfg.ServerURL,
 		UserAgent:  fmt.Sprintf("searchlight-cli/%s", versionInfo.Version),
 		HTTPClient: globals.HTTPC,
-		Tokens:     globals.Tokens,
+		Tokens:     tokenSrc,
 	}
 	globals.Schema = mcp.SchemaCache{
 		Path: cfg.ToolsCachePath(""),

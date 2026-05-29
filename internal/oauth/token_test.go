@@ -283,6 +283,31 @@ func TestManager_ForceRefresh_ReloadsFromStore(t *testing.T) {
 	}
 }
 
+func TestStaticTokenSource_ReturnsToken(t *testing.T) {
+	tok, err := StaticTokenSource("mcp-token-xyz").AccessToken(context.Background())
+	if err != nil {
+		t.Fatalf("AccessToken: %v", err)
+	}
+	if tok != "mcp-token-xyz" {
+		t.Errorf("token = %q, want mcp-token-xyz", tok)
+	}
+}
+
+func TestStaticTokenSource_EmptyErrors(t *testing.T) {
+	if _, err := StaticTokenSource("").AccessToken(context.Background()); err == nil {
+		t.Fatal("expected error for empty token")
+	}
+}
+
+func TestStaticTokenSource_ForceRefreshIsNoOp(t *testing.T) {
+	src := StaticTokenSource("stable")
+	src.ForceRefresh() // must not panic and must not change the token
+	tok, err := src.AccessToken(context.Background())
+	if err != nil || tok != "stable" {
+		t.Errorf("after ForceRefresh: tok=%q err=%v, want stable/nil", tok, err)
+	}
+}
+
 func TestManager_AccessToken_StoreLoadError(t *testing.T) {
 	m := NewManager(errStore{}, "http://nope", "cli", nil)
 	_, err := m.AccessToken(context.Background())
