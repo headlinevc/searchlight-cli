@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 	"github.com/headlinevc/searchlight-cli/internal/keyring"
 	"github.com/headlinevc/searchlight-cli/internal/mcp"
 	"github.com/headlinevc/searchlight-cli/internal/oauth"
+	"github.com/headlinevc/searchlight-cli/internal/output"
 )
 
 type Globals struct {
@@ -100,11 +103,18 @@ func setupGlobals() error {
 	tokenEndpoint := strings.TrimRight(cfg.ServerURL, "/") + "/oauth/token"
 	globals.Tokens = oauth.NewManager(store, tokenEndpoint, cfg.ClientID, globals.HTTPC)
 
-	// A pre-minted MCP token (CI/non-interactive) is sent as the Bearer directly,
-	// bypassing the OAuth manager and keyring entirely.
+	// A pre-minted MCP token is sent as the Bearer directly, bypassing the OAuth
+	// manager and keyring. If the server rejects it (revoked), the fallback warns
+	// and — only on an interactive terminal — drops to the browser login flow.
 	var tokenSrc mcp.TokenSource = globals.Tokens
 	if cfg.Token != "" {
-		tokenSrc = oauth.StaticTokenSource(cfg.Token)
+		tokenSrc = oauth.NewFallbackTokenSource(
+			cfg.Token,
+			output.IsTerminal(os.Stderr),
+			func(msg string) { output.HumanF(globals.Quiet, "warning: %s", msg) },
+			browserLogin(cfg, globals.HTTPC),
+			func(t *oauth.Tokens) { _ = store.Save(t) },
+		)
 	}
 
 	globals.MCP = &mcp.Client{
@@ -118,4 +128,21 @@ func setupGlobals() error {
 		TTL:  24 * time.Hour,
 	}
 	return nil
+}
+
+// browserLogin returns a closure that runs the interactive OAuth flow, or nil
+// when login isn't possible — without a client_id there's no way to drive OAuth,
+// so a rejected token can only fail rather than fall back.
+func browserLogin(cfg *config.Config, httpc *http.Client) func(context.Context) (*oauth.Tokens, error) {
+	if cfg.ClientID == "" {
+		return nil
+	}
+	return func(ctx context.Context) (*oauth.Tokens, error) {
+		flow := oauth.Login{ServerURL: cfg.ServerURL, ClientID: cfg.ClientID, HTTPClient: httpc}
+		res, err := flow.Run(ctx, "read")
+		if err != nil {
+			return nil, err
+		}
+		return res.Tokens, nil
+	}
 }

@@ -88,7 +88,7 @@ invalidates the cache automatically.
 |---|---|---|
 | `SEARCHLIGHT_URL` | `https://searchlight.headline.com` | Server base URL |
 | `SEARCHLIGHT_CLIENT_ID` | (baked at build) | Override OAuth client_id |
-| `SEARCHLIGHT_TOKEN` | (unset) | Pre-minted MCP token for non-interactive auth (CI / GitHub Actions). When set, the browser OAuth flow and keyring are bypassed and the token is sent as the Bearer; `SEARCHLIGHT_CLIENT_ID` is not required. |
+| `SEARCHLIGHT_TOKEN` | (unset) | Pre-minted MCP token for non-interactive auth (CI / GitHub Actions). When set, the browser OAuth flow and keyring are bypassed and the token is sent as the Bearer; `SEARCHLIGHT_CLIENT_ID` is not required. If the server rejects the token (revoked), the CLI warns; on an interactive terminal it then falls back to browser login, while in CI it fails fast with `permission_denied`. |
 
 ### Non-interactive auth (CI)
 

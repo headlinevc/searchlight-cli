@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -283,8 +284,8 @@ func TestManager_ForceRefresh_ReloadsFromStore(t *testing.T) {
 	}
 }
 
-func TestStaticTokenSource_ReturnsToken(t *testing.T) {
-	tok, err := StaticTokenSource("mcp-token-xyz").AccessToken(context.Background())
+func TestFallbackTokenSource_ReturnsToken(t *testing.T) {
+	tok, err := NewFallbackTokenSource("mcp-token-xyz", false, nil, nil, nil).AccessToken(context.Background())
 	if err != nil {
 		t.Fatalf("AccessToken: %v", err)
 	}
@@ -293,18 +294,68 @@ func TestStaticTokenSource_ReturnsToken(t *testing.T) {
 	}
 }
 
-func TestStaticTokenSource_EmptyErrors(t *testing.T) {
-	if _, err := StaticTokenSource("").AccessToken(context.Background()); err == nil {
+func TestFallbackTokenSource_EmptyErrors(t *testing.T) {
+	if _, err := NewFallbackTokenSource("", false, nil, nil, nil).AccessToken(context.Background()); err == nil {
 		t.Fatal("expected error for empty token")
 	}
 }
 
-func TestStaticTokenSource_ForceRefreshIsNoOp(t *testing.T) {
-	src := StaticTokenSource("stable")
-	src.ForceRefresh() // must not panic and must not change the token
-	tok, err := src.AccessToken(context.Background())
-	if err != nil || tok != "stable" {
-		t.Errorf("after ForceRefresh: tok=%q err=%v, want stable/nil", tok, err)
+func TestFallbackTokenSource_NonInteractive_WarnsAndKeepsToken(t *testing.T) {
+	var warnings []string
+	loginCalled := false
+	src := NewFallbackTokenSource("revoked", false,
+		func(m string) { warnings = append(warnings, m) },
+		func(context.Context) (*Tokens, error) { loginCalled = true; return &Tokens{AccessToken: "new"}, nil },
+		nil,
+	)
+	src.ForceRefresh()
+	if loginCalled {
+		t.Error("login must not run in a non-interactive context (would hang CI)")
+	}
+	if tok, _ := src.AccessToken(context.Background()); tok != "revoked" {
+		t.Errorf("token = %q, want unchanged 'revoked'", tok)
+	}
+	if len(warnings) == 0 {
+		t.Error("expected a warning that the token was rejected")
+	}
+}
+
+func TestFallbackTokenSource_Interactive_FallsBackToLogin(t *testing.T) {
+	var persisted *Tokens
+	src := NewFallbackTokenSource("revoked", true, nil,
+		func(context.Context) (*Tokens, error) { return &Tokens{AccessToken: "fresh"}, nil },
+		func(tok *Tokens) { persisted = tok },
+	)
+	src.ForceRefresh()
+	if tok, _ := src.AccessToken(context.Background()); tok != "fresh" {
+		t.Errorf("token = %q, want 'fresh' after browser fallback", tok)
+	}
+	if persisted == nil || persisted.AccessToken != "fresh" {
+		t.Errorf("expected the fresh token persisted, got %+v", persisted)
+	}
+}
+
+func TestFallbackTokenSource_Interactive_LoginErrorKeepsToken(t *testing.T) {
+	src := NewFallbackTokenSource("revoked", true, nil,
+		func(context.Context) (*Tokens, error) { return nil, fmt.Errorf("user cancelled") },
+		nil,
+	)
+	src.ForceRefresh()
+	if tok, _ := src.AccessToken(context.Background()); tok != "revoked" {
+		t.Errorf("token = %q, want unchanged when login fails", tok)
+	}
+}
+
+func TestFallbackTokenSource_OnlyTriesLoginOnce(t *testing.T) {
+	calls := 0
+	src := NewFallbackTokenSource("revoked", true, nil,
+		func(context.Context) (*Tokens, error) { calls++; return nil, fmt.Errorf("nope") },
+		nil,
+	)
+	src.ForceRefresh()
+	src.ForceRefresh()
+	if calls != 1 {
+		t.Errorf("login attempts = %d, want 1", calls)
 	}
 }
 
