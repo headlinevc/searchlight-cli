@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/headlinevc/searchlight-cli/compare/v0.2.0...v0.3.0) (2026-05-29)
+
+
+### Features
+
+* non-interactive auth via pre-minted MCP token (EVA-10149) ([#7](https://github.com/headlinevc/searchlight-cli/issues/7)) ([d7d97ba](https://github.com/headlinevc/searchlight-cli/commit/d7d97ba09b369ea2eb0d08e7bb36e32fde9d9560))
+
 ## [0.2.0](https://github.com/headlinevc/searchlight-cli/compare/v0.1.1...v0.2.0) (2026-05-26)
 
 
