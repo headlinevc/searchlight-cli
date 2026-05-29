@@ -54,12 +54,72 @@ func TestLoad_NoClientID_Errors(t *testing.T) {
 	withDirs(t)
 	t.Setenv("SEARCHLIGHT_URL", "https://example.com")
 	t.Setenv("SEARCHLIGHT_CLIENT_ID", "")
+	t.Setenv("SEARCHLIGHT_TOKEN", "")
 	prev := prodClientID
 	prodClientID = ""
 	t.Cleanup(func() { prodClientID = prev })
 
 	if _, err := Load(); err == nil {
 		t.Fatal("expected error when no client_id is configured")
+	}
+}
+
+func TestLoad_ReadsHomeDotEnv(t *testing.T) {
+	withDirs(t) // sets HOME to a temp dir
+	// godotenv.Load sets the var in the process env, so unset before and after.
+	os.Unsetenv("SEARCHLIGHT_TOKEN")
+	t.Cleanup(func() { os.Unsetenv("SEARCHLIGHT_TOKEN") })
+
+	home, _ := os.UserHomeDir()
+	if err := os.WriteFile(filepath.Join(home, ".env"), []byte("SEARCHLIGHT_TOKEN=from-dotenv\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Token != "from-dotenv" {
+		t.Errorf("Token = %q, want from-dotenv (loaded from ~/.env)", cfg.Token)
+	}
+}
+
+func TestLoad_RealEnvOverridesDotEnv(t *testing.T) {
+	withDirs(t)
+	t.Setenv("SEARCHLIGHT_TOKEN", "from-real-env")
+
+	home, _ := os.UserHomeDir()
+	if err := os.WriteFile(filepath.Join(home, ".env"), []byte("SEARCHLIGHT_TOKEN=from-dotenv\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.Token != "from-real-env" {
+		t.Errorf("Token = %q, want from-real-env (a real export must win over ~/.env)", cfg.Token)
+	}
+}
+
+func TestLoad_TokenBypassesClientIDRequirement(t *testing.T) {
+	withDirs(t)
+	t.Setenv("SEARCHLIGHT_URL", "https://example.com")
+	t.Setenv("SEARCHLIGHT_CLIENT_ID", "")
+	t.Setenv("SEARCHLIGHT_TOKEN", "mcp-token-abc")
+	prev := prodClientID
+	prodClientID = ""
+	t.Cleanup(func() { prodClientID = prev })
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load with a token but no client_id should succeed: %v", err)
+	}
+	if cfg.Token != "mcp-token-abc" {
+		t.Errorf("Token = %q, want mcp-token-abc", cfg.Token)
+	}
+	if cfg.ClientID != "" {
+		t.Errorf("ClientID = %q, want empty (no OAuth needed when a token is supplied)", cfg.ClientID)
 	}
 }
 

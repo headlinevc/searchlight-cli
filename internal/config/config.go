@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -13,6 +15,7 @@ const (
 
 	envServerURL = "SEARCHLIGHT_URL"
 	envClientID  = "SEARCHLIGHT_CLIENT_ID"
+	envToken     = "SEARCHLIGHT_TOKEN"
 )
 
 // ClientID is baked at build time via -ldflags="-X ...prodClientID=..." after
@@ -23,21 +26,30 @@ var prodClientID = ""
 type Config struct {
 	ServerURL string
 	ClientID  string
+	Token     string
 	CacheDir  string
 	ConfigDir string
 }
 
 func Load() (*Config, error) {
+	loadHomeDotEnv()
+
 	server := strings.TrimRight(getenv(envServerURL, DefaultServerURL), "/")
+
+	// A pre-minted MCP token authenticates non-interactively (CI, GitHub
+	// Actions) by being sent as the Bearer directly, bypassing the OAuth flow.
+	token := os.Getenv(envToken)
 
 	clientID := os.Getenv(envClientID)
 	if clientID == "" {
 		clientID = prodClientID
 	}
-	if clientID == "" {
+	// client_id is only needed for the interactive OAuth flow; with a token it
+	// is irrelevant, so don't block startup on it.
+	if clientID == "" && token == "" {
 		return nil, fmt.Errorf(
-			"no OAuth client_id configured for %s; set %s or rebuild with -ldflags",
-			server, envClientID,
+			"no OAuth client_id configured for %s; set %s, provide %s, or rebuild with -ldflags",
+			server, envClientID, envToken,
 		)
 	}
 
@@ -59,9 +71,22 @@ func Load() (*Config, error) {
 	return &Config{
 		ServerURL: server,
 		ClientID:  clientID,
+		Token:     token,
 		CacheDir:  cache,
 		ConfigDir: cfg,
 	}, nil
+}
+
+// loadHomeDotEnv best-effort loads ~/.env so a user can keep SEARCHLIGHT_* there
+// instead of exporting from a shell profile. godotenv.Load does NOT override
+// variables already in the environment, so a real export always wins; a missing
+// file is a no-op.
+func loadHomeDotEnv() {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+	_ = godotenv.Load(filepath.Join(home, ".env"))
 }
 
 func getenv(key, fallback string) string {

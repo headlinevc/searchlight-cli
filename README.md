@@ -88,6 +88,28 @@ invalidates the cache automatically.
 |---|---|---|
 | `SEARCHLIGHT_URL` | `https://searchlight.headline.com` | Server base URL |
 | `SEARCHLIGHT_CLIENT_ID` | (baked at build) | Override OAuth client_id |
+| `SEARCHLIGHT_TOKEN` | (unset) | Pre-minted MCP token for non-interactive auth (CI / GitHub Actions). When set, the browser OAuth flow and keyring are bypassed and the token is sent as the Bearer; `SEARCHLIGHT_CLIENT_ID` is not required. If the server rejects the token (revoked), the CLI warns; on an interactive terminal it then falls back to browser login, while in CI it fails fast with `permission_denied`. |
+
+### Non-interactive auth (CI)
+
+The default `auth login` flow opens a browser, which doesn't work in CI. For
+automation, generate an MCP token in Searchlight and pass it via the
+environment — no `auth login`, no keyring:
+
+```bash
+SEARCHLIGHT_TOKEN=<mcp-token> searchlight lookup_company --domain anthropic.com
+```
+
+### Config via `~/.env`
+
+On startup the CLI loads `~/.env` if it exists, so you can keep `SEARCHLIGHT_*`
+there instead of exporting from a shell profile. A real exported variable always
+wins over the file, and a missing file is a no-op.
+
+```bash
+# ~/.env
+SEARCHLIGHT_TOKEN=<mcp-token>
+```
 
 ## Mutating tools
 

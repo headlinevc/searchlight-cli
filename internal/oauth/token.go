@@ -160,3 +160,70 @@ func (m *Manager) ForceRefresh() {
 	defer m.mu.Unlock()
 	m.cached = nil
 }
+
+// FallbackTokenSource serves a pre-minted MCP token (from SEARCHLIGHT_TOKEN),
+// bypassing the OAuth flow and keyring on the happy path. MCP tokens don't
+// expire, so the only failure is revocation: when the server rejects the token
+// with a 401 the MCP client calls ForceRefresh, and we react based on context.
+//
+// On an interactive terminal we warn and run the browser login flow once, then
+// serve the resulting token so the request can be retried. In non-interactive
+// contexts (CI) we only warn and leave the token unchanged — opening a browser
+// there would block on a callback that never arrives — so the 401 surfaces as
+// permission_denied and the run fails fast.
+type FallbackTokenSource struct {
+	mu          sync.Mutex
+	token       string
+	tried       bool
+	interactive bool
+	warn        func(string)
+	login       func(context.Context) (*Tokens, error) // nil when login isn't possible (e.g. no client_id)
+	persist     func(*Tokens)                           // optional; saves a successful fallback login
+}
+
+func NewFallbackTokenSource(token string, interactive bool, warn func(string), login func(context.Context) (*Tokens, error), persist func(*Tokens)) *FallbackTokenSource {
+	if warn == nil {
+		warn = func(string) {}
+	}
+	return &FallbackTokenSource{
+		token:       token,
+		interactive: interactive,
+		warn:        warn,
+		login:       login,
+		persist:     persist,
+	}
+}
+
+func (f *FallbackTokenSource) AccessToken(context.Context) (string, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.token == "" {
+		return "", fmt.Errorf("empty token")
+	}
+	return f.token, nil
+}
+
+func (f *FallbackTokenSource) ForceRefresh() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.tried {
+		return
+	}
+	f.tried = true
+	f.warn("SEARCHLIGHT_TOKEN was rejected (invalid or revoked)")
+	if !f.interactive || f.login == nil {
+		return
+	}
+	f.warn("falling back to browser login; replace or unset SEARCHLIGHT_TOKEN to skip this next time")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+	toks, err := f.login(ctx)
+	if err != nil {
+		f.warn("browser login failed: " + err.Error())
+		return
+	}
+	f.token = toks.AccessToken
+	if f.persist != nil {
+		f.persist(toks)
+	}
+}
