@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -30,6 +32,8 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
+	loadHomeDotEnv()
+
 	server := strings.TrimRight(getenv(envServerURL, DefaultServerURL), "/")
 
 	// A pre-minted MCP token authenticates non-interactively (CI, GitHub
@@ -71,6 +75,18 @@ func Load() (*Config, error) {
 		CacheDir:  cache,
 		ConfigDir: cfg,
 	}, nil
+}
+
+// loadHomeDotEnv best-effort loads ~/.env so a user can keep SEARCHLIGHT_* there
+// instead of exporting from a shell profile. godotenv.Load does NOT override
+// variables already in the environment, so a real export always wins; a missing
+// file is a no-op.
+func loadHomeDotEnv() {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+	_ = godotenv.Load(filepath.Join(home, ".env"))
 }
 
 func getenv(key, fallback string) string {

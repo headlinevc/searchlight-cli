@@ -100,6 +100,17 @@ environment — no `auth login`, no keyring:
 SEARCHLIGHT_TOKEN=<mcp-token> searchlight lookup_company --domain anthropic.com
 ```
 
+### Config via `~/.env`
+
+On startup the CLI loads `~/.env` if it exists, so you can keep `SEARCHLIGHT_*`
+there instead of exporting from a shell profile. A real exported variable always
+wins over the file, and a missing file is a no-op.
+
+```bash
+# ~/.env
+SEARCHLIGHT_TOKEN=<mcp-token>
+```
+
 ## Mutating tools
 
 Tools with side effects (prefixed `create_`, `update_`, `delete_`, `send_`,
