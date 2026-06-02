@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/headlinevc/searchlight-cli/compare/v0.3.0...v0.4.0) (2026-06-02)
+
+
+### Features
+
+* coerce named-flag args to their JSON Schema type ([1bbe11a](https://github.com/headlinevc/searchlight-cli/commit/1bbe11a333c253b8edbf6bcac3dbb2a4e1332cac))
+* coerce named-flag args to their JSON Schema type ([90e1591](https://github.com/headlinevc/searchlight-cli/commit/90e15910018f75663248a0f63807f047623e0b7c))
+
 ## [0.3.0](https://github.com/headlinevc/searchlight-cli/compare/v0.2.0...v0.3.0) (2026-05-29)
 
 
