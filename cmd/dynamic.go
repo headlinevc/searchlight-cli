@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -83,7 +84,7 @@ func buildToolCmd(t mcp.ToolDefinition) *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(_ *cobra.Command, _ []string) error {
-			payload, err := buildPayload(jsonPayload, flagValues)
+			payload, err := buildPayload(jsonPayload, flagValues, parsed.Properties)
 			if err != nil {
 				return err
 			}
@@ -120,8 +121,11 @@ func buildToolCmd(t mcp.ToolDefinition) *cobra.Command {
 		cmd.Flags().BoolVar(&dryRun, "dry-run", false, "print resolved payload without executing")
 	}
 	for propName := range parsed.Properties {
-		// Per-property convenience flags: all string-typed at the CLI surface;
-		// the server's JSON Schema handles type coercion.
+		// Per-property convenience flags are string-typed at the CLI surface
+		// (cobra has no typed-from-schema flag). buildPayload coerces each value
+		// to the type its JSON Schema declares before the call, because the
+		// server validates types strictly and rejects a string where it wants a
+		// number/array/object/bool.
 		v := ""
 		flagValues[propName] = &v
 		desc := parsed.Properties[propName].Description
@@ -130,7 +134,7 @@ func buildToolCmd(t mcp.ToolDefinition) *cobra.Command {
 	return cmd
 }
 
-func buildPayload(jsonPayload string, flags map[string]*string) (map[string]any, error) {
+func buildPayload(jsonPayload string, flags map[string]*string, props map[string]schemaProperty) (map[string]any, error) {
 	out := map[string]any{}
 	if jsonPayload != "" {
 		if err := json.Unmarshal([]byte(jsonPayload), &out); err != nil {
@@ -141,9 +145,91 @@ func buildPayload(jsonPayload string, flags map[string]*string) (map[string]any,
 		if ptr == nil || *ptr == "" {
 			continue
 		}
-		out[name] = *ptr
+		val, err := coerceFlagValue(name, *ptr, props[name])
+		if err != nil {
+			return nil, err
+		}
+		out[name] = val
 	}
 	return out, nil
+}
+
+// coerceFlagValue converts a named-flag string into the type its JSON Schema
+// declares. Named flags arrive as strings, but the server validates types
+// strictly, so a number/array/object/bool param must be converted here rather
+// than passed through as a string (which the server would reject). When a value
+// can't be coerced, the error names the flag and points at the --json escape
+// hatch, which sidesteps shell-quoting entirely.
+func coerceFlagValue(name, raw string, prop schemaProperty) (any, error) {
+	types := schemaTypes(prop)
+	// A string is always allowed if the schema permits it or declares no type;
+	// pass it through unchanged to preserve the common case and avoid surprises.
+	if len(types) == 0 || containsType(types, "string") {
+		return raw, nil
+	}
+	switch {
+	case containsType(types, "integer"):
+		n, err := strconv.ParseInt(raw, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("--%s expects an integer, got %q", name, raw)
+		}
+		return n, nil
+	case containsType(types, "number"):
+		n, err := strconv.ParseFloat(raw, 64)
+		if err != nil {
+			return nil, fmt.Errorf("--%s expects a number, got %q", name, raw)
+		}
+		return n, nil
+	case containsType(types, "boolean"):
+		b, err := strconv.ParseBool(raw)
+		if err != nil {
+			return nil, fmt.Errorf("--%s expects a boolean (true/false), got %q", name, raw)
+		}
+		return b, nil
+	case containsType(types, "array"), containsType(types, "object"):
+		var v any
+		if err := json.Unmarshal([]byte(raw), &v); err != nil {
+			return nil, fmt.Errorf("--%s expects %s; pass it as JSON (e.g. --%s '%s') or use --json '{...}'", name, types[0], name, exampleForType(types[0]))
+		}
+		return v, nil
+	default:
+		return raw, nil
+	}
+}
+
+// schemaTypes normalizes a JSON Schema "type" (a string, or an array of strings
+// for union types like ["string","null"]) into a slice of type names.
+func schemaTypes(prop schemaProperty) []string {
+	switch t := prop.Type.(type) {
+	case string:
+		return []string{t}
+	case []any:
+		var out []string
+		for _, v := range t {
+			if s, ok := v.(string); ok {
+				out = append(out, s)
+			}
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
+func containsType(types []string, want string) bool {
+	for _, t := range types {
+		if t == want {
+			return true
+		}
+	}
+	return false
+}
+
+func exampleForType(t string) string {
+	if t == "object" {
+		return `{"key":"value"}`
+	}
+	return `["a","b"]`
 }
 
 func firstLine(s string) string {
