@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/headlinevc/searchlight-cli/compare/v0.4.0...v0.5.0) (2026-06-11)
+
+
+### Features
+
+* auto-refresh tools schema cache on login and stale startup (EVA-10283) ([b40ebd8](https://github.com/headlinevc/searchlight-cli/commit/b40ebd891bfc83057bbe7f09d57aa9d758597a7d))
+
 ## [0.4.0](https://github.com/headlinevc/searchlight-cli/compare/v0.3.0...v0.4.0) (2026-06-02)
 
 
