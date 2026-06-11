@@ -34,7 +34,9 @@ func isMutator(name string) bool {
 
 // registerDynamicTools loads the tools cache (silently, no fetch) and registers
 // one cobra subcommand per cached tool. If the cache doesn't exist yet, this is
-// a no-op — the user runs `searchlight tools refresh` first.
+// a no-op — `auth login` and the startup freshness check (ensureFreshSchema)
+// populate it automatically; `searchlight tools refresh` remains the manual
+// escape hatch.
 func registerDynamicTools(root *cobra.Command) {
 	cs, err := globals.Schema.Load()
 	if err != nil || cs == nil {

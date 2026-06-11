@@ -32,7 +32,7 @@ Linear ticket: [EVA-9938](https://linear.app/headline/issue/EVA-9938/create-a-se
 └─────────────────────────┘                              └──────────────────────┘
         │
         ├─ keyring: tokens.v1 (Tokens struct as JSON blob)
-        └─ ~/.cache/searchlight/tools-<server-version>.json (24h TTL)
+        └─ ~/.cache/searchlight/tools-<server-version>.json (1h TTL)
 ```
 
 ### Repo layout
@@ -77,16 +77,28 @@ Every invocation:
 
 1. `main.go` calls `cmd.Execute()` which calls `setupGlobals()` → loads config,
    wires the OAuth manager and MCP client, sets the schema cache path.
-2. If the schema cache file exists, `registerDynamicTools` reads it (no network)
+2. `ensureFreshSchema` (cmd/root.go) keeps the cache from drifting stale: when
+   the invocation targets a dynamic tool command (argv peek; the static set
+   `help`/`version`/`auth`/`tools`/`completion`/flags is skipped), the cache is
+   missing or older than the 1h TTL, and stored credentials exist (keyring
+   tokens or `SEARCHLIGHT_TOKEN`), it re-fetches `tools/list` with a 3s timeout.
+   A fetch failure is swallowed only when a usable cache exists to fall back
+   to and `--no-cache` wasn't given (the stale cache keeps working, exit codes
+   and stderr untouched, offline behavior unchanged); with no readable cache
+   or an explicit `--no-cache`, the error propagates with its transport exit
+   code.
+3. If the schema cache file exists, `registerDynamicTools` reads it (no network)
    and adds one cobra subcommand per tool. Each gets:
    - `--json '<payload>'` (preferred for agents)
    - One `--<prop-name>` per `inputSchema.properties` entry
    - `--dry-run` if the tool name matches a mutator prefix (`create_`, `send_`,
      `delete_`, `update_`, `add_`, `remove_`, `ingest_`, `run_`, `parse_`,
      `cancel_`, `pause_`, `unpause_`, `save_`, `report_`)
-3. If the cache is missing, top-level help still works; the user runs
-   `searchlight auth login` then `searchlight tools refresh` to populate it.
-4. Required fields are validated at runtime in `buildPayload` because they can
+4. If the cache is missing, top-level help still works; `searchlight auth login`
+   populates it automatically (a successful login force-refreshes the schema
+   cache, best-effort). `searchlight tools refresh` remains as a manual escape
+   hatch.
+5. Required fields are validated at runtime in `buildPayload` because they can
    be satisfied by either `--json` or per-property flags (cobra has no any-of
    semantics).
 
@@ -335,7 +347,7 @@ Before the first release can succeed:
 | File | Purpose |
 |---|---|
 | `main.go` | Entry point; wires version info, propagates `CodedError` exit codes |
-| `cmd/root.go` | Globals struct, `setupGlobals`, `Execute`, cobra tree assembly |
+| `cmd/root.go` | Globals struct, `setupGlobals`, `Execute`, `ensureFreshSchema` startup auto-refresh, cobra tree assembly |
 | `cmd/dynamic.go` | `registerDynamicTools`, `buildToolCmd`, payload merge, dry-run heuristic |
 | `cmd/tools.go` | `writeToolResult` — the JSON-stdout pass-through that agents depend on |
 | `cmd/auth.go` | Login/logout/whoami/refresh; uses `oauth.Login.Run` and `oauth.Manager` |

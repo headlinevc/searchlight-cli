@@ -46,6 +46,7 @@ func newAuthLoginCmd() *cobra.Command {
 				return fmt.Errorf("save credentials: %w", err)
 			}
 			globals.Tokens.ForceRefresh()
+			refreshSchemaAfterLogin()
 			output.HumanF(globals.Quiet, "Signed in. Token expires in %ds.", res.Tokens.ExpiresIn)
 			return output.WriteValue(os.Stdout, map[string]any{
 				"status":     "ok",
@@ -55,6 +56,33 @@ func newAuthLoginCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&scope, "scope", "read", "OAuth scope to request")
 	return cmd
+}
+
+// refreshSchemaAfterLogin best-effort populates the tools cache right after a
+// successful login, so a fresh sign-in leaves the user with working dynamic
+// commands in one step. Failure only warns — the tokens are already saved, so
+// auth itself succeeded and login must still exit 0.
+//
+// The fetch goes through schemaRefreshClient rather than globals.MCP: the
+// cache must be fetched as the principal that will execute future tool calls
+// — the env token when SEARCHLIGHT_TOKEN is set (tool availability can differ
+// per principal), otherwise the OAuth tokens just saved — and a revoked env
+// token must fail into the warning below rather than re-triggering the
+// interactive fallback; the user's next real call hits that fallback where it
+// belongs.
+func refreshSchemaAfterLogin() {
+	if globals.Schema.Path == "" {
+		output.HumanF(globals.Quiet, "warning: could not cache tool schemas (schema cache not initialized); run `searchlight tools refresh` to retry")
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	tools, err := globals.Schema.LoadOrFetch(ctx, schemaRefreshClient(), true)
+	if err != nil {
+		output.HumanF(globals.Quiet, "warning: could not cache tool schemas (%v); run `searchlight tools refresh` to retry", err)
+		return
+	}
+	output.HumanF(globals.Quiet, "Cached %d tools.", len(tools))
 }
 
 func newAuthLogoutCmd() *cobra.Command {

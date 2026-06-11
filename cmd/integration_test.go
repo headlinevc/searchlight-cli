@@ -40,10 +40,12 @@ type recordedCall struct {
 	method string
 	name   string // for tools/call
 	args   map[string]any
+	auth   string // Authorization header as seen by the server
 }
 
 func (h *integrationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	body, _ := io.ReadAll(r.Body)
+	auth := r.Header.Get("Authorization")
 	var rpc struct {
 		Method string          `json:"method"`
 		ID     int64           `json:"id"`
@@ -56,7 +58,7 @@ func (h *integrationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch rpc.Method {
 	case "initialize":
-		h.called = append(h.called, recordedCall{method: rpc.Method})
+		h.called = append(h.called, recordedCall{method: rpc.Method, auth: auth})
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"jsonrpc": "2.0", "id": rpc.ID,
 			"result": mcp.InitializeResult{ServerInfo: struct {
@@ -65,7 +67,7 @@ func (h *integrationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}{Name: "Searchlight MCP Server", Version: "4.2.0"}},
 		})
 	case "tools/list":
-		h.called = append(h.called, recordedCall{method: rpc.Method})
+		h.called = append(h.called, recordedCall{method: rpc.Method, auth: auth})
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"jsonrpc": "2.0", "id": rpc.ID,
 			"result": mcp.ListToolsResult{Tools: []mcp.ToolDefinition{
@@ -75,7 +77,7 @@ func (h *integrationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "tools/call":
 		var p mcp.ToolCallParams
 		_ = json.Unmarshal(rpc.Params, &p)
-		h.called = append(h.called, recordedCall{method: rpc.Method, name: p.Name, args: p.Arguments})
+		h.called = append(h.called, recordedCall{method: rpc.Method, name: p.Name, args: p.Arguments, auth: auth})
 		if fn, ok := h.respond[p.Name]; ok {
 			result, isError := fn(p.Arguments)
 			text, _ := json.Marshal(result)
@@ -392,4 +394,3 @@ func TestNewKeyringBackend_UsesConfigPath(t *testing.T) {
 	}
 	_ = f // silence unused on platforms where credentials are stored only in OS keyring
 }
-
