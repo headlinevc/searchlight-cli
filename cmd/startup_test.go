@@ -122,7 +122,9 @@ func TestEnsureFreshSchema_FreshCache_NoNetwork(t *testing.T) {
 	stubCredentials(t, true)
 	setArgs(t, "searchlight", "fresh_tool")
 
-	ensureFreshSchema()
+	if err := ensureFreshSchema(); err != nil {
+		t.Fatalf("ensureFreshSchema: %v", err)
+	}
 
 	if got := len(f.calls()); got != 0 {
 		t.Errorf("expected zero network calls with a fresh cache, got %+v", f.calls())
@@ -196,7 +198,9 @@ func TestEnsureFreshSchema_NoCredentials_NoNetwork(t *testing.T) {
 	stubCredentials(t, false)
 	setArgs(t, "searchlight", "old_tool")
 
-	ensureFreshSchema()
+	if err := ensureFreshSchema(); err != nil {
+		t.Fatalf("ensureFreshSchema: %v", err)
+	}
 
 	if got := len(f.calls()); got != 0 {
 		t.Errorf("expected zero network calls without credentials, got %+v", f.calls())
@@ -225,7 +229,9 @@ func TestEnsureFreshSchema_StaticCommands_NoFetch(t *testing.T) {
 			stubCredentials(t, true)
 			setArgs(t, args...)
 
-			ensureFreshSchema()
+			if err := ensureFreshSchema(); err != nil {
+				t.Fatalf("ensureFreshSchema: %v", err)
+			}
 
 			if got := len(f.calls()); got != 0 {
 				t.Errorf("args %v: expected zero startup fetches, got %+v", args, f.calls())
@@ -249,7 +255,9 @@ func TestEnsureFreshSchema_LeadingFlags_StillFetches(t *testing.T) {
 			stubCredentials(t, true)
 			setArgs(t, args...)
 
-			ensureFreshSchema()
+			if err := ensureFreshSchema(); err != nil {
+				t.Fatalf("ensureFreshSchema: %v", err)
+			}
 
 			if got := countToolsListCalls(f); got != 1 {
 				t.Errorf("args %v: tools/list called %d times, want exactly 1", args, got)
@@ -274,7 +282,9 @@ func TestEnsureFreshSchema_NoCacheFlag_ForcesFetchDespiteFreshCache(t *testing.T
 			stubCredentials(t, true)
 			setArgs(t, args...)
 
-			ensureFreshSchema()
+			if err := ensureFreshSchema(); err != nil {
+				t.Fatalf("ensureFreshSchema: %v", err)
+			}
 
 			if got := countToolsListCalls(f); got != 1 {
 				t.Errorf("args %v: tools/list called %d times, want exactly 1", args, got)
@@ -289,7 +299,9 @@ func TestEnsureFreshSchema_NoCacheFalse_FreshCacheSkipsFetch(t *testing.T) {
 	stubCredentials(t, true)
 	setArgs(t, "searchlight", "--no-cache=false", "lookup_company")
 
-	ensureFreshSchema()
+	if err := ensureFreshSchema(); err != nil {
+		t.Fatalf("ensureFreshSchema: %v", err)
+	}
 
 	if got := len(f.calls()); got != 0 {
 		t.Errorf("--no-cache=false must not force a fetch on a fresh cache, got %+v", f.calls())
@@ -302,7 +314,9 @@ func TestEnsureFreshSchema_NoCacheFlag_StillRequiresCredentials(t *testing.T) {
 	stubCredentials(t, false)
 	setArgs(t, "searchlight", "--no-cache", "lookup_company")
 
-	ensureFreshSchema()
+	if err := ensureFreshSchema(); err != nil {
+		t.Fatalf("ensureFreshSchema: %v", err)
+	}
 
 	if got := len(f.calls()); got != 0 {
 		t.Errorf("expected zero network calls without credentials even with --no-cache, got %+v", f.calls())
