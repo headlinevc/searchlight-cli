@@ -72,14 +72,25 @@ Optimized for agents per the agent-CLI design principles documented in
 
 Tool definitions are fetched at runtime from the MCP server's `tools/list`
 endpoint and cached under `$XDG_CACHE_HOME/searchlight/tools-<version>.json`
-for 24h. The cache key embeds the server's reported version, so a server bump
-invalidates the cache automatically.
+for 1 hour. The cache refreshes itself automatically at two moments:
+
+- **After `auth login`** — a successful login immediately caches the current
+  tool list, so a fresh install is fully usable in one step.
+- **At startup** — invoking a dynamic tool command with a stale (>1h) cache
+  and stored credentials triggers a quick (~3s) re-fetch before the command
+  runs. If the server is unreachable, the CLI silently falls back to the
+  cached schema; offline behavior is unchanged. Two exceptions surface the
+  error instead: when there is no cached schema to fall back to, and when
+  `--no-cache` explicitly demanded a refresh.
+
+Static commands (`--help`, `version`, `auth *`, `tools *`, `completion`) never
+trigger a startup fetch and keep working offline and pre-auth.
 
 | Command | Purpose |
 |---|---|
 | `searchlight tools` | List all tools (JSON) |
 | `searchlight tools describe <name>` | Print one tool's schema |
-| `searchlight tools refresh` | Force re-fetch from the server |
+| `searchlight tools refresh` | Manual escape hatch: force re-fetch from the server |
 | `searchlight <tool-name> --help` | Per-tool help, parameter table, JSON example |
 
 ## Configuration

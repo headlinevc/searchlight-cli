@@ -7,7 +7,8 @@ the load-bearing facts; everything else is in `searchlight --help`.
 
 - `searchlight tools` returns a JSON object `{ count, tools: [{name, description, inputSchema}, ...] }`. Use this once at the start of a session.
 - `searchlight tools describe <name>` returns one tool's full schema.
-- The cached schema is at `$XDG_CACHE_HOME/searchlight/tools-<server-version>.json` and refreshes every 24h. Force refresh with `searchlight tools refresh` or any command with `--no-cache`.
+- The cached schema is at `$XDG_CACHE_HOME/searchlight/tools-<server-version>.json` with a 1-hour TTL. It refreshes itself at two moments: right after a successful `auth login`, and at startup when you invoke a dynamic tool command with a stale cache and stored credentials (bounded to ~3s). A failed startup refresh silently falls back to the cached schema when one exists; with no cache to fall back to, or when `--no-cache` explicitly demanded freshness, the failure surfaces with its normal exit code (e.g. 7 for transport). You normally never need `searchlight tools refresh` — it remains as a manual escape hatch, as does `--no-cache` on any command.
+- Static commands (`help`, `version`, `auth *`, `tools *`, `completion`, bare/flag-only invocations) never trigger a startup fetch — they work offline and pre-auth.
 
 ## Invocation
 
